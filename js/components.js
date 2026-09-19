@@ -21,6 +21,7 @@
           componentPath,
           componentBase
         );
+
         const response = await fetch(componentUrl.href);
 
         if (!response.ok) {
