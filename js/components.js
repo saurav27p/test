@@ -1,47 +1,54 @@
+(() => {
+  const scriptUrl = document.currentScript?.src;
+  const componentBase = scriptUrl
+    ? new URL("../", scriptUrl)
+    : new URL("./", document.baseURI);
 
-
-document.addEventListener("DOMContentLoaded", () => {
-  const componentTargets = document.querySelectorAll(
-    "[data-component]"
-  );
-
-  const loadComponent = (element) => {
-    const componentPath = element.getAttribute(
-      "data-component"
+  const loadComponents = async () => {
+    const componentTargets = Array.from(
+      document.querySelectorAll("[data-component]")
     );
 
-    if (!componentPath) {
-      return Promise.resolve();
-    }
+    await Promise.all(
+      componentTargets.map(async (element) => {
+        const componentPath = element.getAttribute("data-component");
 
-    return fetch(componentPath)
-      .then((response) => {
+        if (!componentPath) {
+          return;
+        }
+
+        const componentUrl = new URL(
+          componentPath,
+          componentBase
+        );
+        const response = await fetch(componentUrl.href);
+
         if (!response.ok) {
           throw new Error(
-            `HTTP ${response.status}: ${componentPath}`
+            `HTTP ${response.status}: ${componentUrl.pathname}`
           );
         }
 
-        return response.text();
+        element.outerHTML = await response.text();
       })
-      .then((content) => {
-        element.outerHTML = content;
-      })
-      .catch((error) => {
-        console.error(
-          "PragyaRoot component error:",
-          error
-        );
+    );
 
-        element.remove();
-      });
-  };
-
-  Promise.all(
-    Array.from(componentTargets).map(loadComponent)
-  ).then(() => {
     document.dispatchEvent(
       new Event("pragyaroot:components-loaded")
     );
-  });
-});
+  };
+
+  const initialize = () => {
+    loadComponents().catch((error) => {
+      console.error("PragyaRoot component error:", error);
+    });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialize, {
+      once: true
+    });
+  } else {
+    initialize();
+  }
+})();
