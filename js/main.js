@@ -4,24 +4,58 @@ document.addEventListener("DOMContentLoaded", () => {
   const html = document.documentElement;
 
   /* Theme */
-  const themeToggle = document.querySelector("[data-theme-toggle]");
+  const themeToggles = document.querySelectorAll("[data-theme-toggle]");
 
   const savedTheme = localStorage.getItem("pragyaroot-theme");
 
-  if (savedTheme) {
+  if (savedTheme === "dark" || savedTheme === "light") {
     html.setAttribute("data-theme", savedTheme);
   } else {
-    const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    html.setAttribute("data-theme", systemDark ? "dark" : "light");
+    const systemDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+
+    html.setAttribute(
+      "data-theme",
+      systemDark ? "dark" : "light"
+    );
   }
 
-  themeToggle?.addEventListener("click", () => {
+  const updateThemeControls = () => {
     const currentTheme = html.getAttribute("data-theme");
-    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    const isDark = currentTheme === "dark";
 
-    html.setAttribute("data-theme", nextTheme);
-    localStorage.setItem("pragyaroot-theme", nextTheme);
+    themeToggles.forEach((toggle) => {
+      toggle.setAttribute(
+        "aria-pressed",
+        String(isDark)
+      );
+
+      toggle.setAttribute(
+        "aria-label",
+        isDark ? "Switch to light theme" : "Switch to dark theme"
+      );
+    });
+  };
+
+  themeToggles.forEach((toggle) => {
+    toggle.addEventListener("click", () => {
+      const currentTheme = html.getAttribute("data-theme");
+      const nextTheme =
+        currentTheme === "dark" ? "light" : "dark";
+
+      html.setAttribute("data-theme", nextTheme);
+
+      localStorage.setItem(
+        "pragyaroot-theme",
+        nextTheme
+      );
+
+      updateThemeControls();
+    });
   });
+
+  updateThemeControls();
 
   /* Mobile Menu */
   const menuButton = document.querySelector("[data-menu-toggle]");
@@ -29,16 +63,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuOverlay = document.querySelector("[data-menu-overlay]");
 
   const openMenu = () => {
-    mobileMenu?.classList.add("is-open");
+    if (!mobileMenu) {
+      return;
+    }
+
+    mobileMenu.classList.add("is-open");
     menuOverlay?.classList.add("is-visible");
+
     menuButton?.setAttribute("aria-expanded", "true");
+    mobileMenu.setAttribute("aria-hidden", "false");
+
     document.body.classList.add("menu-open");
   };
 
   const closeMenu = () => {
-    mobileMenu?.classList.remove("is-open");
+    if (!mobileMenu) {
+      return;
+    }
+
+    mobileMenu.classList.remove("is-open");
     menuOverlay?.classList.remove("is-visible");
+
     menuButton?.setAttribute("aria-expanded", "false");
+    mobileMenu.setAttribute("aria-hidden", "true");
+
     document.body.classList.remove("menu-open");
   };
 
@@ -65,9 +113,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* Desktop Layout */
-  window.addEventListener("resize", () => {
-    if (window.innerWidth >= 768) {
+  const desktopMediaQuery = window.matchMedia(
+    "(min-width: 768px)"
+  );
+
+  const handleDesktopLayout = (event) => {
+    if (event.matches) {
       closeMenu();
     }
-  });
+  };
+
+  desktopMediaQuery.addEventListener(
+    "change",
+    handleDesktopLayout
+  );
 });
