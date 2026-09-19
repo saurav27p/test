@@ -1,42 +1,47 @@
 
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   const componentTargets = document.querySelectorAll(
     "[data-component]"
   );
 
-  if (!componentTargets.length) {
-    return;
-  }
-
-  const loadComponent = async (element) => {
-    const componentPath = element.dataset.component;
+  const loadComponent = (element) => {
+    const componentPath = element.getAttribute(
+      "data-component"
+    );
 
     if (!componentPath) {
-      return;
+      return Promise.resolve();
     }
 
-    try {
-      const response = await fetch(componentPath);
+    return fetch(componentPath)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(
+            `HTTP ${response.status}: ${componentPath}`
+          );
+        }
 
-      if (!response.ok) {
-        throw new Error(
-          `Component request failed: ${response.status}`
+        return response.text();
+      })
+      .then((content) => {
+        element.outerHTML = content;
+      })
+      .catch((error) => {
+        console.error(
+          "PragyaRoot component error:",
+          error
         );
-      }
 
-      element.innerHTML = await response.text();
-
-    } catch (error) {
-      console.error(error);
-    }
+        element.remove();
+      });
   };
 
-  await Promise.all(
-    [...componentTargets].map(loadComponent)
-  );
-
-  document.dispatchEvent(
-    new CustomEvent("pragyaroot:components-loaded")
-  );
+  Promise.all(
+    Array.from(componentTargets).map(loadComponent)
+  ).then(() => {
+    document.dispatchEvent(
+      new Event("pragyaroot:components-loaded")
+    );
+  });
 });
