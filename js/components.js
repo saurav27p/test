@@ -1,48 +1,72 @@
 (() => {
-  const scriptUrl = document.currentScript?.src;
-  const componentBase = scriptUrl
-    ? new URL("../", scriptUrl)
-    : new URL("./", document.baseURI);
+  const componentBase = new URL(
+    "./components/",
+    document.baseURI
+  );
 
-  const loadComponents = async () => {
+  const loadComponent = async (element) => {
+    const componentPath = element.getAttribute(
+      "data-component"
+    );
+
+    if (!componentPath) {
+      return;
+    }
+
+    const componentName = componentPath.split("/").pop();
+    const componentUrl = new URL(
+      componentName,
+      componentBase
+    );
+
+    try {
+      console.log(
+        "PragyaRoot component URL:",
+        componentUrl.href
+      );
+
+      const response = await fetch(componentUrl.href);
+
+      console.log(
+        "PragyaRoot component response:",
+        response.status
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}: ${componentUrl.href}`
+        );
+      }
+
+      const content = await response.text();
+
+      if (!content.trim()) {
+        throw new Error(
+          `Empty component response: ${componentUrl.href}`
+        );
+      }
+
+      element.outerHTML = content;
+    } catch (error) {
+      console.error(
+        "PragyaRoot component error:",
+        error
+      );
+    }
+  };
+
+  const initialize = async () => {
     const componentTargets = Array.from(
       document.querySelectorAll("[data-component]")
     );
 
     await Promise.all(
-      componentTargets.map(async (element) => {
-        const componentPath = element.getAttribute("data-component");
-
-        if (!componentPath) {
-          return;
-        }
-
-        const componentUrl = new URL(
-          componentPath,
-          componentBase
-        );
-
-        const response = await fetch(componentUrl.href);
-
-        if (!response.ok) {
-          throw new Error(
-            `HTTP ${response.status}: ${componentUrl.pathname}`
-          );
-        }
-
-        element.outerHTML = await response.text();
-      })
+      componentTargets.map(loadComponent)
     );
 
     document.dispatchEvent(
       new Event("pragyaroot:components-loaded")
     );
-  };
-
-  const initialize = () => {
-    loadComponents().catch((error) => {
-      console.error("PragyaRoot component error:", error);
-    });
   };
 
   if (document.readyState === "loading") {
