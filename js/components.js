@@ -1,3 +1,5 @@
+
+
 document.addEventListener("DOMContentLoaded", async () => {
   const componentTargets = document.querySelectorAll(
     "[data-component]"
@@ -19,18 +21,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (!response.ok) {
         throw new Error(
-          `Failed to load component: ${response.status}`
+          `Component request failed: ${response.status}`
         );
       }
 
-      const html = await response.text();
+      element.innerHTML = await response.text();
 
-      element.innerHTML = html;
     } catch (error) {
-      console.error(
-        "PragyaRoot component loading error:",
-        error
-      );
+      console.error(error);
     }
   };
 
